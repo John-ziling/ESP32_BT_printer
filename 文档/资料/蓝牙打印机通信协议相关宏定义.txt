@@ -1,0 +1,82 @@
+#define START_BYTE 0x02                  //开始字节
+#define END_BYTE 0x03                    //结束字节
+#define PRINTER_SN "P1001705253855"      //P1打印机设备编号
+//#define PRINTER_SN "P2B02004087288"      //P2打印机设备编号,设置为P2会导致无法正常打印：打印边长，交错重复
+#define PRINTER_NAME "P1"                //P1打印机名称
+//#define PRINTER_NAME "P2"                //P2打印机名称
+#define COUNTRY_NAME "CN"                //国家的名字
+char *CMD_42_DATA PROGMEM = "BK3432";
+uint8_t CMD_7F_DATA[] PROGMEM = {0x76, 0x33, 0x2e, 0x33, 0x38, 0x2e, 0x31, 0x39, 0, 0, 0, 0};
+uint8_t CMD_81_DATA[] PROGMEM = {0x48, 0x4d, 0x45, 0x32, 0x33, 0x30, 0x5f, 0x50, 0x32, 0, 0, 0, 0, 0, 0, 0};
+//uint8_t PRINTER_VERSION[] PROGMEM = {0x08, 0x01, 0x01};     //打印机版本1.1.8
+uint8_t PRINTER_VERSION[] PROGMEM = {0x01, 0x00, 0x02};     //打印机版本2.0.1
+uint8_t *CMD_40_DATA PROGMEM = {0x00};
+//uint8_t heat_density = 16;                                  //热密度
+uint8_t heat_density = 64; 
+uint8_t gotStartByte = 0;
+uint8_t c;                                 //热密度
+
+#define PRINT_DATA 0                   //打印数据
+#define PRINT_DATA_COMPRESS 1          //打印数据压缩
+#define FIRMWARE_DATA 2                //固件数据
+#define USB_UPDATE_FIRMWARE 3          //USB更新固件
+#define GET_VERSION 4                  //获取版本
+#define SENT_VERSION 5                 //发送版本
+#define GET_MODEL 6                    //获取模式
+#define SENT_MODEL 7                   //发送模式
+#define GET_BT_MAC 8                   //获取蓝牙MAC
+#define SENT_BT_MAC 9                  //发送蓝牙MAC
+#define GET_SN 10                      //获取SN码
+#define SENT_SN 11                     //发送SN码
+#define GET_STATUS 12                  //获取状态
+#define SENT_STATUS 13                 //发送状态
+#define GET_VOLTAGE 14                 //获取电压
+#define SENT_VOLTAGE 15                //发送电压
+#define GET_BAT_STATUS 16              //获取蓝牙状态
+#define SENT_BAT_STATUS 17             //发送蓝牙状态
+#define GET_TEMP 18                    //获取打印头温度
+#define SENT_TEMP 19                   //发送打印头温度
+#define SET_FACTORY_STATUS 20          //设置出厂状态
+#define GET_FACTORY_STATUS 21          //获取出厂状态
+#define SENT_FACTORY_STATUS 22         //发送出厂状态
+#define SENT_BT_STATUS 23              //发送蓝牙状态
+#define SET_CRC_KEY 24                 //设置CRC密钥
+#define SET_HEAT_DENSITY 25            //设定热密度
+#define FEED_LINE 26                   //进料线
+#define PRINT_TEST_PAGE 27             //打印测试页
+#define GET_HEAT_DENSITY 28            //获取热密度
+#define SENT_HEAT_DENSITY 29           //发送热密度
+#define SET_POWER_DOWN_TIME 30         //设定关机时间
+#define GET_POWER_DOWN_TIME 31         //获取断电时间
+#define SENT_POWER_DOWN_TIME 32        //发送断电时间
+#define FEED_TO_HEAD_LINE 33           //送至标题行
+#define PRINT_DEFAULT_PARA 34          //打印默认参数
+#define GET_BOARD_VERSION 35           //获取板子版本
+#define SENT_BOARD_VERSION 36          //发送板子版本
+#define GET_HW_INFO 37                 //获取硬件信息
+#define SENT_HW_INFO 38                //发送硬件信息
+#define SET_MAX_GAP_LENGTH 39          //设定最大间隙长度
+#define GET_MAX_GAP_LENGTH 40          //获取最大间隙长度
+#define SENT_MAX_GAP_LENGTH 41         //发送最大间隙长度
+#define GET_PAPER_TYPE 42              //获取纸张类型
+#define SENT_PAPER_TYPE 43             //发送纸张类型
+#define SET_PAPER_TYPE 44              //设置纸张类型
+#define GET_COUNTRY_NAME 45            //获取国家名称
+#define SENT_COUNTRY_NAME 46           //发送国家名称
+#define DISCONNECT_BT 47               //断开蓝牙
+#define GET_DEV_NAME 48                //获取设备名称
+#define SENT_DEV_NAME 49               //发送设备名称
+#define CMD_39 57
+#define CMD_40 64
+#define CMD_41 65
+#define CMD_42 66
+#define CMD_43 67
+#define CMD_7F 127
+#define CMD_80 128
+#define CMD_81 129
+#define CMD_82 130
+uint8_t dataPack[512];
+uint32_t dataPack_len;
+uint32_t crc32_result;
+uint16_t readpos = 0;
+uint16_t dataPack_read_pos = 0;
