@@ -1,0 +1,15 @@
+.pio
+.vscode/.browse.c_cpp.db*
+.vscode/c_cpp_properties.json
+.vscode/launch.json
+.vscode/ipch
+# 1. 目录忽略更规范
+.pio/
+
+# 2. 允许团队共享推荐的插件和设置（这两个文件可以提交）
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# 3. 忽略操作系统自动生成的垃圾文件
+.DS_Store
+Thumbs.db
