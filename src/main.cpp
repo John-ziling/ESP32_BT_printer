@@ -7,6 +7,7 @@
 
 BluetoothSerial SerialBT;
 
+
 // put function declarations here:
 void LEDconfig() {
   pinMode(LED_PIN, OUTPUT);
@@ -26,6 +27,8 @@ void loop() {
     Serial.println(data);
   }
   SerialBT.println("喵喵机运行中!");
-  SerialBT.println("Hello from ESP32!");
+
+
+  
   delay(1000);
 }
