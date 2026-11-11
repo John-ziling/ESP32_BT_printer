@@ -1,30 +1,16 @@
-#include <Arduino.h>
-#include <BluetoothSerial.h>
-#include <SPI.h>
-#define LED_PIN 2
-#define LED_ON() digitalWrite(LED_PIN, HIGH)
-#define LED_OFF() digitalWrite(LED_PIN, LOW)
-
-static SPISettings HEAD_SPI(1000000, MSBFIRST, SPI_MODE0); 
+#include <main.h>
 
 BluetoothSerial SerialBT;
 
 // put function declarations here:
-void LEDconfig() {
-  pinMode(LED_PIN, OUTPUT);
-}
-void KEYconfig() {
-  pinMode(5, INPUT_PULLUP);
-}
 
 void setup() {
   Serial.begin(115200); 
   delay(200);
-  SPI.beginTransaction(HEAD_SPI);
-  
   SPI.begin();
+  printinit();
   LEDconfig();
-  KEYconfig();
+  BTNconfig();
   SerialBT.begin("喵喵机"); // 蓝牙设备名
 }
 
