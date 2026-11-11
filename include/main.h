@@ -5,3 +5,6 @@
 #include <SPI.h>
 #include "config.h"
 #include "printer.h"
+#include "motor.h"
+
+extern BluetoothSerial SerialBT;

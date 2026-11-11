@@ -1,5 +1,5 @@
 #pragma once
-#include <main.h>
+
 
 //LED
 #define LED_PIN 18
@@ -26,3 +26,4 @@ void LEDconfig(void);
 #define BTN_PIN 5
 void BTNconfig(void);
 
+#include <Arduino.h>
