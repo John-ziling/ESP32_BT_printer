@@ -21,6 +21,7 @@ void setup() {
   Serial.begin(115200); 
   delay(200);
   SPI.beginTransaction(HEAD_SPI);
+  
   SPI.begin();
   LEDconfig();
   KEYconfig();

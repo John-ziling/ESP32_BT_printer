@@ -8,4 +8,8 @@
 
 ## 开发环境
 - VS Code + PlatformIO
+<<<<<<< HEAD
 - 框架：Arduino
+=======
+- 框架：Arduino
+>>>>>>> 38ecb46a990e1bb90b6abebc0f6e154a4a6e9503
