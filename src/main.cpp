@@ -1,9 +1,11 @@
 #include <Arduino.h>
 #include <BluetoothSerial.h>
-
+#include <SPI.h>
 #define LED_PIN 2
 #define LED_ON() digitalWrite(LED_PIN, HIGH)
 #define LED_OFF() digitalWrite(LED_PIN, LOW)
+
+static SPISettings HEAD_SPI(1000000, MSBFIRST, SPI_MODE0); 
 
 BluetoothSerial SerialBT;
 
@@ -11,19 +13,17 @@ BluetoothSerial SerialBT;
 void LEDconfig() {
   pinMode(LED_PIN, OUTPUT);
 }
+void KEYconfig() {
+  pinMode(5, INPUT_PULLUP);
+}
 
 void setup() {
   Serial.begin(115200); 
   delay(200);
-  Serial.println(); 
-  Serial.println("=== STAGE 00 · blink + serial ==="); 
-  Serial.printf("chip   : %s rev%d, %d cores @ %u MHz\n", 
-                ESP.getChipModel(), ESP.getChipRevision(), 
-                ESP.getChipCores(), ESP.getCpuFreqMHz()); 
-  Serial.printf("flash  : %u KB\n", ESP.getFlashChipSize() / 1024); 
-  Serial.printf("heap   : %u bytes free\n", ESP.getFreeHeap()); 
-
+  SPI.beginTransaction(HEAD_SPI);
+  SPI.begin();
   LEDconfig();
+  KEYconfig();
   SerialBT.begin("喵喵机"); // 蓝牙设备名
 }
 
@@ -34,6 +34,6 @@ void loop() {
     Serial.println(data);
   }
   SerialBT.println("喵喵机运行中!");
-
+  
   delay(1000);
 }
