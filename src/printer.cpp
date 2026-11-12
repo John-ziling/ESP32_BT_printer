@@ -1,7 +1,6 @@
 #include "printer.h"
 
 static SPISettings HEAD_SPI(1000000, MSBFIRST, SPI_MODE0); 
-
 static const int STB_BUFFS[] = {STB1_PIN, STB2_PIN, STB3_PIN, STB4_PIN, STB5_PIN, STB6_PIN};
 
 void printinit(void){
@@ -29,7 +28,7 @@ void printhead_send(const uint8_t row[HEAD_BYTES]) {
   }
   SPI.endTransaction(); 
 
-  digitalWrite(LAY_PIN, LOW); //快速拉高拉低锁存数据
+  digitalWrite(LAY_PIN, LOW);//
   delayMicroseconds(1); 
   digitalWrite(LAY_PIN, HIGH); 
 }
@@ -60,11 +59,26 @@ void printhead_heat_mask(uint8_t mask,uint32_t time_us){
 
 //全部加热函数
 void printhead_heat_all(uint32_t time_us){
-  printhead_stb(0xFF); 
+  printhead_stb(0x3F); 
   delayMicroseconds(time_us);
   printhead_stb(0);
 }
 
-
+//打印一行数据，row为打印数据，heat_time_us为加热时间
+void printer_print_row(const uint8_t row[HEAD_BYTES], uint32_t heat_time_us){
+  printhead_send(row);
+  //加热打印头
+  printhead_vh(true);
+  delayMicroseconds(1000);//等待加热电源稳定
+  for (uint8_t i = 0; i < HEAD_STB_NUM; i++)
+  {
+    //按位加热打印头
+    printhead_stb(1 << i);
+    delayMicroseconds(heat_time_us);
+    printhead_stb(0);
+    delayMicroseconds(20); 
+  }
+  printhead_vh(false);
+}
 
 

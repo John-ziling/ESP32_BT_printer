@@ -3,16 +3,15 @@
 
 //LED
 #define LED_PIN 18
-#define LED_ON() digitalWrite(LED_PIN, HIGH)
-#define LED_OFF() digitalWrite(LED_PIN, LOW)
+#define LED_ON() digitalWrite(LED_PIN, LOW)
+#define LED_OFF() digitalWrite(LED_PIN, HIGH)
 void LEDconfig(void);
 //print head
-
+#define HEAD_PHINT   35
 #define HEAD_BYTES   48      // 一行 384 点 / 8  48字节
 #define HEAD_DOTS    384 
 #define HEAD_STB_NUM 6  //STB加热段个数
 #define CLK_PIN 15
-#define LAY_PIN 12
 #define STB1_PIN 14
 #define STB2_PIN 27
 #define STB3_PIN 26
@@ -20,10 +19,17 @@ void LEDconfig(void);
 #define STB5_PIN 33
 #define STB6_PIN 32
 #define DI_PIN 13
-#define VH_EN_PIN 17
+#define PIN_TEMP    36 
 
-//BTN
+// #define LAY_PIN 12
+// #define VH_EN_PIN 17
+
+#define LAY_PIN 17
+#define VH_EN_PIN 28
+
 #define BTN_PIN 5
-void BTNconfig(void);
 
+
+
+void BTNconfig(void);
 #include <Arduino.h>
