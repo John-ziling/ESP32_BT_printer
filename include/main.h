@@ -6,5 +6,9 @@
 #include "config.h"
 #include "printer.h"
 #include "motor.h"
+#include "paper.h"
+#include "adc.h"
+#include "battery.h"
+
 
 extern BluetoothSerial SerialBT;

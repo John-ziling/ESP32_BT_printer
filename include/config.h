@@ -21,15 +21,22 @@ void LEDconfig(void);
 #define DI_PIN 13
 #define PIN_TEMP    36 
 
-// #define LAY_PIN 12
-// #define VH_EN_PIN 17
+#define USE_BOARD_2 
 
+
+#ifdef USE_BOARD_1 
+#define LAY_PIN 12
+#define VH_EN_PIN 17
+#endif
+
+#ifdef USE_BOARD_2
 #define LAY_PIN 17
 #define VH_EN_PIN 28
+#endif
 
 #define BTN_PIN 5
 
-
+#define PIN_BATTEST 34
 
 void BTNconfig(void);
 #include <Arduino.h>
