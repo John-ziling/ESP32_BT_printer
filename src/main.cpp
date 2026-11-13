@@ -28,9 +28,11 @@ void loop() {
   if(digitalRead(BTN_PIN) == LOW){
     delay(20);
     if(digitalRead(BTN_PIN) == LOW){
-
-      print_page(bitmap_page[0],64,HEAT_DEF_TIME_US);
-      
+      if (papertest() == 0) {
+        print_page((const uint8_t *)bitmap_page,
+                   sizeof(bitmap_page) / sizeof(bitmap_page[0]),
+                   HEAT_DEF_TIME_US);
+      }
       while (digitalRead(BTN_PIN) == LOW) delay(10);
       delay(20);
     }

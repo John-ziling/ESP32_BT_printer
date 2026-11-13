@@ -5,7 +5,7 @@ static const int STB_BUFFS[] = {STB1_PIN, STB2_PIN, STB3_PIN, STB4_PIN, STB5_PIN
 
 void printinit(void){
   pinMode(LAY_PIN, OUTPUT);
-  digitalWrite(LAY_PIN, LOW);
+  digitalWrite(LAY_PIN, HIGH);
   pinMode(VH_EN_PIN, OUTPUT);
   digitalWrite(VH_EN_PIN, LOW);
   for (int i = 0; i < HEAD_STB_NUM; i++) {
@@ -26,10 +26,9 @@ void printhead_send(const uint8_t row[HEAD_BYTES]) {
   SPI.writeBytes(row, HEAD_BYTES);   // 比 transfer 循环快
   SPI.endTransaction();
 
-  digitalWrite(LAY_PIN, HIGH);
-  delayMicroseconds(1);
   digitalWrite(LAY_PIN, LOW);
-
+  delayMicroseconds(1);
+  digitalWrite(LAY_PIN, HIGH);
 }
 
 //清除打印数据
@@ -79,7 +78,7 @@ void printer_print_row(const uint8_t row[HEAD_BYTES], uint32_t heat_time_us){
 
 void printer_begin(void){
   printhead_vh(true);
-  delay(5);              // 等升压稳定，避免第一行偏淡
+  delay(5);
 }
 
 void printer_end(void){
