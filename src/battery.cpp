@@ -16,11 +16,11 @@ void getBatteryPower(void)
     uint16_t now_vbat = 0;
     uint8_t Battery_level=0;
     pin_mv=get_adc_avg(POWER_ADC_PIN);
-    now_vbat=pin_mv*2/1000;
+    now_vbat=pin_mv*2;
 
-    Serial.printf("引脚读取的mv值: %d,当前电压：%d",pin_mv,now_vbat);
+    Serial.printf("引脚读取的mv值: %d,当前电压：%.2f",pin_mv,(float)now_vbat/1000.0f);
     for(int i= sizeof(batVoltagelist)/sizeof(batVoltagelist[0])-1;i >= 0 ;i--){
-        if(now_vbat >= batVoltagelist[i]){
+        if((float)now_vbat/1000.0f >= batVoltagelist[i]){
             Battery_level=i;
             break;
         }

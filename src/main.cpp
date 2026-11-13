@@ -13,6 +13,8 @@ void setup() {
   papertest_Config();
   SerialBT.begin("喵喵机"); // 蓝牙设备名
 }
+
+
 uint32_t count = 0;
 void loop() {
   while (SerialBT.available()) {
