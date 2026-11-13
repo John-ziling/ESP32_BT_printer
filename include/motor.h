@@ -20,3 +20,5 @@ void motor_steps(uint32_t steps,bool phase,uint32_t delay_us);
 
 void motor_step_mm_true(float mm,uint32_t delay_us);
 void motor_step_mm_false(float mm,uint32_t delay_us);
+
+void motor_run(uint32_t steps, bool phase, uint32_t delay_us);

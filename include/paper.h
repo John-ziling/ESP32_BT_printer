@@ -5,7 +5,7 @@
 
 #include <Arduino.h>    
 
-void pappertest_Config(void);
+void papertest_Config(void);
 uint8_t papertest(void);
 
 #endif

@@ -12,3 +12,4 @@
 
 
 extern BluetoothSerial SerialBT;
+extern const uint8_t bitmap_page[200][48];

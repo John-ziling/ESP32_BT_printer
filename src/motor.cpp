@@ -65,3 +65,9 @@ void motor_step_mm_false(float mm,uint32_t delay_us){
     int32_t steps = (int32_t)(mm * MOTOR_STEP_MM + 0.5f);
     motor_steps(steps, false, delay_us);
 }
+
+void motor_run(uint32_t steps, bool phase, uint32_t delay_us){
+  for (uint32_t i = 0; i < steps; i++) {
+    motor_step(phase, delay_us);
+  }
+}

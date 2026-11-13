@@ -21,7 +21,7 @@ void LEDconfig(void);
 #define DI_PIN 13
 #define PIN_TEMP    36 
 
-#define USE_BOARD_2 
+#define USE_BOARD_1 
 
 
 #ifdef USE_BOARD_1 

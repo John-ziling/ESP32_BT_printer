@@ -12,7 +12,7 @@ void printinit(void){
     pinMode(STB_BUFFS[i], OUTPUT);
     digitalWrite(STB_BUFFS[i], LOW);
   }
-  SPI.begin(CLK_PIN, -1, DI_PIN, -1);//设置SPI引脚，CLK_PIN为时钟引脚，DI_PIN为数据输入引脚
+  SPI.begin(CLK_PIN, 4, DI_PIN, -1);//设置SPI引脚，CLK_PIN为时钟引脚，DI_PIN为数据输入引脚
 }
 
 //控制加热电源的开关
@@ -20,17 +20,16 @@ void printhead_vh(bool on) {
   digitalWrite(VH_EN_PIN, on ? HIGH : LOW); 
 } 
 
-//发送打印头数据
-void printhead_send(const uint8_t row[HEAD_BYTES]) { 
-  SPI.beginTransaction(HEAD_SPI); 
-  for (int i = 0; i < HEAD_BYTES; i++) {
-    SPI.transfer(row[i]); 
-  }
-  SPI.endTransaction(); 
 
-  digitalWrite(LAY_PIN, LOW);//
-  delayMicroseconds(1); 
-  digitalWrite(LAY_PIN, HIGH); 
+void printhead_send(const uint8_t row[HEAD_BYTES]) {
+  SPI.beginTransaction(HEAD_SPI);
+  SPI.writeBytes(row, HEAD_BYTES);   // 比 transfer 循环快
+  SPI.endTransaction();
+
+  digitalWrite(LAY_PIN, HIGH);
+  delayMicroseconds(1);
+  digitalWrite(LAY_PIN, LOW);
+
 }
 
 //清除打印数据
@@ -64,21 +63,41 @@ void printhead_heat_all(uint32_t time_us){
   printhead_stb(0);
 }
 
-//打印一行数据，row为打印数据，heat_time_us为加热时间
+
 void printer_print_row(const uint8_t row[HEAD_BYTES], uint32_t heat_time_us){
+  motor_run(4, false, 2000);
+  delay(2);
   printhead_send(row);
-  //加热打印头
-  printhead_vh(true);
-  delayMicroseconds(1000);//等待加热电源稳定
-  for (uint8_t i = 0; i < HEAD_STB_NUM; i++)
-  {
-    //按位加热打印头
+  delayMicroseconds(1000);
+  for (uint8_t i = 0; i < HEAD_STB_NUM; i++) {
     printhead_stb(1 << i);
     delayMicroseconds(heat_time_us);
     printhead_stb(0);
-    delayMicroseconds(20); 
+    delayMicroseconds(20);
   }
+}
+
+void printer_begin(void){
+  printhead_vh(true);
+  delay(5);              // 等升压稳定，避免第一行偏淡
+}
+
+void printer_end(void){
+  printhead_stb(0);
+  printer_clear();
   printhead_vh(false);
 }
 
+
+void print_page(const uint8_t *data, uint32_t lines, uint32_t heat_us) {
+  printer_begin();
+
+  for (uint32_t line = 0; line < lines; line++) {
+    printer_print_row(&data[line * HEAD_BYTES], heat_us);
+  }
+
+  motor_run(20 * 4, false, 2000);   // 送纸
+  motor_release();
+  printer_end();
+}
 
