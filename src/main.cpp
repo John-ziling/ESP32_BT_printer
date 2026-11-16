@@ -1,17 +1,14 @@
 #include <main.h>
 
-BluetoothSerial SerialBT;
-
 void setup() {
   Serial.begin(115200); 
   delay(200);
   printinit();
   printer_clear();
   motor_init();
-  LEDconfig();
-  BTNconfig();
+  LEDInit();
+  BTNInit();
   papertest_Config();
-  SerialBT.begin("喵喵机"); // 蓝牙设备名
 }
 
 
@@ -24,7 +21,6 @@ void loop() {
     count = 0;
     getBatteryPower();
     test_head_temp();
-    SerialBT.println("喵喵机");
   }
   count++;
   if(digitalRead(BTN_PIN) == LOW){

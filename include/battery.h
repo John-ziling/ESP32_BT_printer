@@ -4,8 +4,9 @@
 
 #define POWER_ADC_PIN 34
 
-extern float batVoltage;          // 电池电压
+extern float BATV_VOLT;          // 电池电压
 extern uint8_t PRINTER_BATTERY;   // 电量百分比 (0-100)
+
 void getBatteryPower(void);
 
 const float batVoltagelist[101] = {

@@ -1,8 +1,10 @@
 #include "config.h"
 
-void LEDconfig() {
+void LEDInit(void) {
   pinMode(LED_PIN, OUTPUT);
+  digitalWrite(LED_PIN, LOW);
 }
-void BTNconfig() {
+
+void BTNInit(void) {
   pinMode(BTN_PIN, INPUT_PULLUP);
 }

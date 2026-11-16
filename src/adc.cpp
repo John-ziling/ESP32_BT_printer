@@ -7,6 +7,9 @@ const float B_VALUE = 3950.0;
 const float R_PULLUP = 10000.0;  // NTC 上拉电阻 10kΩ (原理图 R22)
 const float VCC_MV = 3300.0;     // 系统供电 3.3V
 
+uint8_t head_overtemp = 0;
+
+
 extern BluetoothSerial SerialBT;
 
 float battery_voltage = 0.0;
@@ -49,14 +52,17 @@ float get_head_temperature(void)
     return temp_c;
 }
 
-void test_head_temp(void){
+uint8_t test_head_temp(void){
     uint8_t temp = get_head_temperature();
     Serial.printf("当前温度：%d",temp);
     if(temp>=50 && temp<=80){
         Serial.printf("当前温度较高");
+        return 1;
     }else if(temp>=80){
         Serial.printf("当前温度过高");
+        return 2;
     }else{
         Serial.printf("当前温度正常");
+        return 0;
     }
 }

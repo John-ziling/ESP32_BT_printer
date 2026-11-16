@@ -5,7 +5,8 @@
 #define LED_PIN 18
 #define LED_ON() digitalWrite(LED_PIN, LOW)
 #define LED_OFF() digitalWrite(LED_PIN, HIGH)
-void LEDconfig(void);
+void LEDInit(void);
+
 //print head
 #define HEAD_PHINT   35
 #define HEAD_BYTES   48      // 一行 384 点 / 8  48字节
@@ -19,7 +20,6 @@ void LEDconfig(void);
 #define STB5_PIN 33
 #define STB6_PIN 32
 #define DI_PIN 13
-#define PIN_TEMP    36 
 
 #define USE_BOARD_1 
 
@@ -37,6 +37,5 @@ void LEDconfig(void);
 #define BTN_PIN 5
 
 #define PIN_BATTEST 34
-
-void BTNconfig(void);
+void BTNInit(void);
 #include <Arduino.h>

@@ -2,6 +2,10 @@
 
 uint16_t adc=0;
 
+float BATV_VOLT;          // 电池电压
+uint8_t PRINTER_BATTERY;  
+
+
 static uint16_t get_adc_avg(uint8_t pin){
     uint32_t sum=0;
     for(uint8_t i = 0; i < 10 ; i++){
@@ -25,6 +29,8 @@ void getBatteryPower(void)
             break;
         }
     }
+    BATV_VOLT=(float)now_vbat/1000.0f;
+    PRINTER_BATTERY=Battery_level;
     Serial.printf("查表获取的电量：%d%%",Battery_level);
     
 }

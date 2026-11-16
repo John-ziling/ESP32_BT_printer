@@ -12,7 +12,7 @@ void printinit(void){
     pinMode(STB_BUFFS[i], OUTPUT);
     digitalWrite(STB_BUFFS[i], LOW);
   }
-  SPI.begin(CLK_PIN, 4, DI_PIN, -1);//设置SPI引脚，CLK_PIN为时钟引脚，DI_PIN为数据输入引脚
+  SPI.begin(CLK_PIN, -1, DI_PIN, -1);//设置SPI引脚，CLK_PIN为时钟引脚，DI_PIN为数据输入引脚
 }
 
 //控制加热电源的开关
@@ -74,7 +74,7 @@ void printer_print_row(const uint8_t row[HEAD_BYTES], uint32_t heat_time_us){
     printhead_stb(1 << i);
     delayMicroseconds(heat_time_us);
     printhead_stb(0);
-    delayMicroseconds(100);
+    delayMicroseconds(300);
   }
 }
 
@@ -94,6 +94,11 @@ void print_page(const uint8_t *data, uint32_t lines, uint32_t heat_us) {
   printer_begin();
 
   for (uint32_t line = 0; line < lines; line++) {
+    if(test_head_temp()==2){
+      printer_end();
+      motor_release();
+      return;
+    }
     printer_print_row(&data[line * HEAD_BYTES], heat_us);
   }
 

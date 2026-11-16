@@ -7,5 +7,5 @@
 #include "math.h"
 
 void ADC_Config(void);
-void test_head_temp(void);
+uint8_t test_head_temp(void);
 #endif
