@@ -8,10 +8,12 @@
 //  +------+------+------+------+------+------------+---------+------+
 //
 //  长度 2 字节小端，CRC32 4 字节小端。
-//  CRC 覆盖范围按帧的类型区分（实测结论，见教程 8.2）：
-//    · 数据帧        —— 只算 payload
-//    · ACK 帧        —— 算帧头 5 字节 + 那 1 字节 0x00 载荷 = 前 6 字节
-//  两者用"载荷长度 1 且内容为 0x00"来区分。
+//
+//  CRC 规则（真机抓包实测，详见 frame.cpp 顶部说明）：
+//    初值不是 0xFFFFFFFF，而是 crcKey（0x35769521）；只覆盖 payload。
+//    空载荷帧的 CRC 因此恒等于 0x35769521。
+//  校验时对"标准 zlib / 覆盖帧头 / key 初值"几种候选都放行，
+//  命中的是哪条记录在 Frame::crc_rule，方便排查。
 // =====================================================
 #include <stdint.h>
 #include <stddef.h>
@@ -23,14 +25,17 @@
 #define FRAME_MAX_PAYLOAD 2048   // 协议规定单包 ≤1920/2016，这里留 2KB
 #define ACK_LEN           11
 
+#define FRAME_CRC_KEY_DEFAULT 0x35769521u
+
 struct Frame {
     uint8_t  type;
     uint8_t  index;
     uint16_t len;
     uint8_t  payload[FRAME_MAX_PAYLOAD];
     uint32_t crc_recv;   // 帧里带的 CRC
-    uint32_t crc_calc;   // 本地算出来的 CRC
+    uint32_t crc_calc;   // 本地按主规则算出来的 CRC
     bool     crc_ok;
+    uint8_t  crc_rule;   // 命中的校验规则编号（0xFF = 全不匹配）
 };
 
 class FrameParser {
@@ -54,13 +59,16 @@ private:
     uint8_t  buf[FRAME_MAX_PAYLOAD];
 };
 
-// 组一个数据帧（CRC 覆盖 payload），返回整帧字节数；cap 不够返回 0
+// 当前 CRC 初值（crcKey）；SET_CRC_KEY 指令会更新它
+void     frame_set_crc_key(uint32_t key);
+uint32_t frame_get_crc_key(void);
+
+// 组一个数据帧（CRC = key 初值 + payload），返回整帧字节数；cap 不够返回 0
 uint16_t frame_build(uint8_t type, uint8_t index, const uint8_t *payload,
                      uint16_t len, uint8_t *out, uint16_t cap);
-// 组一个 ACK（固定 11 字节，CRC 覆盖前 6 字节），返回 11
+// 组一个 ACK（固定 11 字节，CRC 只覆盖那 1 字节 0x00 载荷），返回 11
 uint16_t ack_build(uint8_t type, uint8_t *out);
-// 启动自检：CRC 向量 + ACK 字节序 + 组帧/拆帧往返，全过返回 true
-// 传入调用方的解析器/帧对象，避免再占 4KB RAM
+// 启动自检：CRC 向量 + 真机样本帧 + 组帧/拆帧往返，全过返回 true
 bool frame_selftest(FrameParser &parser, Frame &frame);
 // 十六进制打印，调试用
 void frame_hexdump(const char *tag, const uint8_t *d, size_t n);

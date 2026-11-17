@@ -85,3 +85,17 @@ uint32_t crc32_update(uint32_t crc, const uint8_t *data, size_t len) {
 uint32_t crc32_calc(const uint8_t *data, size_t len) {
     return crc32_update(0, data, len);
 }
+
+// -----------------------------------------------------
+//  喵喵机 App 真正用的算法：把 crcKey 当初值（不是 0xFFFFFFFF）
+//  实测：SET_CRC_KEY 那帧的 payload = 21 95 76 35（key 的小端），
+//        帧里带的 CRC = 0x2144DF1C = crc32_seeded(0x35769521, payload)
+//  推论：空载荷帧的 CRC 恒等于 key 本身（0x35769521）。
+// -----------------------------------------------------
+uint32_t crc32_seeded(uint32_t seed, const uint8_t *data, size_t len) {
+    uint32_t crc = seed ^ 0xFFFFFFFFu;
+    while (len--) {
+        crc = CRC_TABLE[(crc ^ *data++) & 0xFF] ^ (crc >> 8);
+    }
+    return crc ^ 0xFFFFFFFFu;
+}

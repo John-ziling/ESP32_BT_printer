@@ -34,8 +34,9 @@ VS Code + PlatformIO + Arduino 框架。
 0x02 | type | idx | len(2,LE) | payload | CRC32(4,LE) | 0x03
 ```
 
-- CRC32 标准 zlib 算法；
-- 数据帧 CRC 覆盖 payload；ACK 帧覆盖前 6 字节；空载荷帧两种写法都放行；
+- CRC32 **用 crcKey `0x35769521` 作初值**（不是标准 zlib 的 0xFFFFFFFF），且**只覆盖 payload**；
+  空载荷帧的 CRC 因此恒等于 `0x35769521`（真机实测，见 `src/frame.cpp` 顶部）；
+- 校验时对"标准 zlib / 覆盖帧头"等旧写法也放行，命中非主规则会在串口打出规则编号；
 - 查询类指令回 `SENT_*` 数据帧，其余回 11 字节 ACK；
 - 握手顺序、打印流程、指令表见 [`文档/通用打印方案设计.md`](文档/通用打印方案设计.md)
   与 [参考文档](文档/打印问题诊断总结.md)。

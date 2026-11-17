@@ -3,15 +3,31 @@
 
 #include "frame.h"
 #include "crc32.h"
+#include "proto.h"
 
 // =====================================================
 //  frame.cpp —— 喵喵机协议的组帧 / 拆帧
+//
+//  CRC 规则（以真机抓包为准，不是书上的说法）：
+//    crc = crc32_seeded(crcKey, payload, len)
+//    即把 crcKey（0x35769521）代替 0xFFFFFFFF 作初值，且**只覆盖 payload**。
+//    实盘证据：App 的 SET_CRC_KEY 帧 payload=21 95 76 35，帧内 CRC=0x2144DF1C
+//             = crc32_seeded(0x35769521, 21 95 76 35)
+//    推论：空载荷帧的 CRC 恒等于 key 本身（0x35769521）。
+//
+//  为了兼容早期按"标准 zlib / 覆盖帧头"写的上位机，校验时几种候选都试一遍，
+//  命中哪个就记在 Frame::crc_rule 里。
 // =====================================================
 
 // ACK 形状的帧：载荷长度 1 且内容 0x00
 static inline bool ack_shaped(uint16_t len, const uint8_t *payload){
     return (len == 1 && payload[0] == 0x00);
 }
+
+static uint32_t s_crc_key = FRAME_CRC_KEY_DEFAULT;
+
+void frame_set_crc_key(uint32_t key){ s_crc_key = key; }
+uint32_t frame_get_crc_key(void){ return s_crc_key; }
 
 void FrameParser::reset(){
     st = S_START;
@@ -56,26 +72,36 @@ int FrameParser::feed(uint8_t b, Frame &out){
         if (len) memcpy(out.payload, buf, len);
         out.crc_recv = crc;
 
-        if (len == 0) {
-            // 载荷为空的帧（所有 GET 类指令）：实测两种写法都存在——
-            // 有的实现算空载荷（CRC=0），有的算帧头 5 字节，两者都放行
-            uint8_t head[FRAME_HDR_LEN] = {
-                FRAME_START, type, index, (uint8_t)(len & 0xFF), (uint8_t)(len >> 8)
-            };
-            out.crc_calc = crc32_calc(head, FRAME_HDR_LEN);
-            out.crc_ok   = (crc == 0 || crc == out.crc_calc);
-        } else if (ack_shaped(len, buf)) {
-            // ACK：CRC 覆盖帧头 5 字节 + 那 1 字节 0x00 载荷
-            uint8_t head[FRAME_HDR_LEN + 1] = {
-                FRAME_START, type, index,
-                (uint8_t)(len & 0xFF), (uint8_t)(len >> 8), buf[0]
-            };
-            out.crc_calc = crc32_calc(head, sizeof(head));
-            out.crc_ok   = (out.crc_calc == crc);
-        } else {
-            out.crc_calc = crc32_calc(buf, len);
-            out.crc_ok   = (out.crc_calc == crc);
+        // 帧头 5 字节；ACK 形状再加那 1 字节载荷
+        uint8_t  head[FRAME_HDR_LEN + 1] = {
+            FRAME_START, type, index, (uint8_t)(len & 0xFF), (uint8_t)(len >> 8), 0x00
+        };
+        uint16_t head_len = FRAME_HDR_LEN;
+        if (ack_shaped(len, buf)) { head[FRAME_HDR_LEN] = buf[0]; head_len++; }
+
+        uint32_t cand[5];
+        uint8_t  cand_n = 0;
+
+        cand[cand_n++] = crc32_seeded(s_crc_key, buf, len);   // 0: 主规则（App 实测）
+        cand[cand_n++] = crc32_calc(buf, len);                // 1: 标准 zlib，覆盖 payload
+        cand[cand_n++] = crc32_calc(head, head_len);          // 2: 标准 zlib，覆盖帧头
+        cand[cand_n++] = crc32_seeded(s_crc_key, head, head_len); // 3: key 初值，覆盖帧头
+
+        if (type == SET_CRC_KEY && len == 4) {                // 4: 用帧里带的 key 校验自己
+            uint32_t k = (uint32_t)buf[0] | ((uint32_t)buf[1] << 8) |
+                         ((uint32_t)buf[2] << 16) | ((uint32_t)buf[3] << 24);
+            cand[cand_n++] = crc32_seeded(k, buf, len);
         }
+
+        out.crc_calc = cand[0];
+        out.crc_ok   = false;
+        out.crc_rule = 0xFF;
+        for (uint8_t i = 0; i < cand_n; i++) {
+            if (cand[i] == crc) { out.crc_ok = true; out.crc_rule = i; break; }
+        }
+
+        // 老工具发的全 0 CRC（空载荷帧）也放行
+        if (!out.crc_ok && len == 0 && crc == 0) { out.crc_ok = true; out.crc_rule = 5; }
 
         if (out.crc_ok) ok_cnt++; else bad_cnt++;
 
@@ -99,7 +125,7 @@ uint16_t frame_build(uint8_t type, uint8_t index, const uint8_t *payload,
     out[4] = (uint8_t)(len >> 8);
     if (len) memcpy(out + FRAME_HDR_LEN, payload, len);
 
-    uint32_t c = crc32_calc(out + FRAME_HDR_LEN, len);
+    uint32_t c = crc32_seeded(s_crc_key, out + FRAME_HDR_LEN, len);
     uint8_t *p = out + FRAME_HDR_LEN + len;
     p[0] = (uint8_t)(c);
     p[1] = (uint8_t)(c >> 8);
@@ -118,7 +144,8 @@ uint16_t ack_build(uint8_t type, uint8_t *out){
     out[4] = 0x00;
     out[5] = 0x00;   // 载荷固定一个 0x00，表示"收到且成功"
 
-    uint32_t c = crc32_calc(out, FRAME_HDR_LEN + 1);
+    // 只覆盖那 1 字节载荷（厂商 send_ack 就是这么算的）
+    uint32_t c = crc32_seeded(s_crc_key, out + FRAME_HDR_LEN, 1);
     out[6] = (uint8_t)(c);
     out[7] = (uint8_t)(c >> 8);
     out[8] = (uint8_t)(c >> 16);
@@ -139,21 +166,30 @@ void frame_hexdump(const char *tag, const uint8_t *d, size_t n){
 bool frame_selftest(FrameParser &parser, Frame &frame){
     bool ok = true;
 
-    // 1) CRC 标准向量
+    // 1) 标准 zlib 向量（保留，用于确认表没坏）
     if (crc32_calc((const uint8_t *)"123456789", 9) != 0xCBF43926u) {
         Serial.println("  [x] CRC 标准向量 123456789"); ok = false;
     }
-    if (crc32_calc((const uint8_t *)"P1001705253855", 14) != 0xBEFC12DFu) {
-        Serial.println("  [x] CRC SN 向量"); ok = false;
+
+    // 2) key 作初值的向量（真机实测值）
+    const uint8_t key_payload[4] = {0x21, 0x95, 0x76, 0x35};
+    if (crc32_seeded(FRAME_CRC_KEY_DEFAULT, key_payload, 4) != 0x2144DF1Cu) {
+        Serial.println("  [x] CRC key 向量（真机样本）"); ok = false;
+    }
+    if (crc32_seeded(FRAME_CRC_KEY_DEFAULT, nullptr, 0) != FRAME_CRC_KEY_DEFAULT) {
+        Serial.println("  [x] 空载荷 CRC 应等于 key"); ok = false;
     }
     const uint8_t ver_payload[3] = {0x01, 0x00, 0x02};
-    if (crc32_calc(ver_payload, 3) != 0x108DD209u) {
-        Serial.println("  [x] CRC 版本号向量"); ok = false;
+    if (crc32_seeded(FRAME_CRC_KEY_DEFAULT, ver_payload, 3) != 0x9C5254BDu) {
+        Serial.println("  [x] 版本号 key 向量"); ok = false;
+    }
+    if (crc32_seeded(FRAME_CRC_KEY_DEFAULT, (const uint8_t *)"P1001705253855", 14) != 0x759F78E5u) {
+        Serial.println("  [x] SN key 向量"); ok = false;
     }
 
-    // 2) ACK 字节序（GET_VERSION 应答应为 02 04 00 01 00 00 5F CC 48 08 03）
+    // 3) ACK 字节序：GET_VERSION 应答应为 02 04 00 01 00 00 46 89 5E 9E 03
     static const uint8_t ack_expect[ACK_LEN] = {
-        0x02, 0x04, 0x00, 0x01, 0x00, 0x00, 0x5F, 0xCC, 0x48, 0x08, 0x03
+        0x02, 0x04, 0x00, 0x01, 0x00, 0x00, 0x46, 0x89, 0x5E, 0x9E, 0x03
     };
     uint8_t ack[ACK_LEN];
     ack_build(4, ack);
@@ -163,7 +199,7 @@ bool frame_selftest(FrameParser &parser, Frame &frame){
         ok = false;
     }
 
-    // 3) 组帧 → 拆帧 往返（数据帧）
+    // 4) 组帧 → 拆帧 往返（数据帧）
     uint8_t raw[64];
     uint16_t n = frame_build(5, 0, ver_payload, 3, raw, sizeof(raw));
     if (n != 13) { Serial.println("  [x] 数据帧长度"); ok = false; }
@@ -179,7 +215,7 @@ bool frame_selftest(FrameParser &parser, Frame &frame){
         Serial.println("  [x] 数据帧往返"); ok = false;
     }
 
-    // 4) 拆 ACK（CRC 覆盖前 6 字节的分支）
+    // 5) 拆 ACK
     parser.reset();
     r = 0;
     for (uint16_t i = 0; i < ACK_LEN; i++) r = parser.feed(ack[i], frame);
@@ -187,18 +223,31 @@ bool frame_selftest(FrameParser &parser, Frame &frame){
         Serial.println("  [x] ACK 拆帧"); ok = false;
     }
 
-    // 5) 载荷为空的帧（GET 类指令），CRC 覆盖帧头 5 字节
-    uint8_t empty_hdr[FRAME_HDR_LEN] = {FRAME_START, 4, 0x00, 0x00, 0x00};
-    uint32_t hc = crc32_calc(empty_hdr, FRAME_HDR_LEN);
-    uint8_t empty_frame[10] = {FRAME_START, 4, 0x00, 0x00, 0x00,
-                               (uint8_t)hc, (uint8_t)(hc >> 8), (uint8_t)(hc >> 16), (uint8_t)(hc >> 24),
-                               FRAME_END};
+    // 6) App 真实的 GET_VERSION 帧：02 04 00 00 00 21 95 76 35 03
+    static const uint8_t app_empty[10] = {
+        0x02, 0x04, 0x00, 0x00, 0x00, 0x21, 0x95, 0x76, 0x35, 0x03
+    };
     parser.reset();
     r = 0;
-    for (uint16_t i = 0; i < sizeof(empty_frame); i++) r = parser.feed(empty_frame[i], frame);
+    for (uint16_t i = 0; i < sizeof(app_empty); i++) r = parser.feed(app_empty[i], frame);
     if (r != 1 || !frame.crc_ok || frame.type != 4 || frame.len != 0) {
-        Serial.println("  [x] 空载荷帧"); ok = false;
+        Serial.println("  [x] App 空载荷帧"); ok = false;
     }
+
+    // 7) App 真实的 SET_CRC_KEY 帧（CRC 由帧内的 key 算出）
+    uint8_t key_frame[64];
+    frame_set_crc_key(0x11111111u);            // 故意用一个错 key 组帧
+    uint16_t klen = frame_build(SET_CRC_KEY, 0, key_payload, 4, key_frame, sizeof(key_frame));
+    // 把 CRC 换成真机那个值，确认"载荷里的 key 自校验"这条规则能命中
+    key_frame[klen - 5] = 0x1C; key_frame[klen - 4] = 0xDF;
+    key_frame[klen - 3] = 0x44; key_frame[klen - 2] = 0x21;
+    parser.reset();
+    r = 0;
+    for (uint16_t i = 0; i < klen; i++) r = parser.feed(key_frame[i], frame);
+    if (r != 1 || !frame.crc_ok) {
+        Serial.println("  [x] SET_CRC_KEY 自校验帧"); ok = false;
+    }
+    frame_set_crc_key(FRAME_CRC_KEY_DEFAULT);
 
     return ok;
 }

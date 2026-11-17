@@ -165,8 +165,10 @@ static void handle_frame(void){
     // ---------- 设置类：回 ACK ----------
     case SET_CRC_KEY:
         if (n >= 4) {
-            uint32_t key = ((uint32_t)p[0] << 24) | ((uint32_t)p[1] << 16) |
-                           ((uint32_t)p[2] << 8)  |  (uint32_t)p[3];
+            // App 按小端发：21 95 76 35 → 0x35769521
+            uint32_t key = (uint32_t)p[0] | ((uint32_t)p[1] << 8) |
+                           ((uint32_t)p[2] << 16) | ((uint32_t)p[3] << 24);
+            frame_set_crc_key(key);
             Serial.printf("SET_CRC_KEY 0x%08X\n", (unsigned)key);
         }
         reply_ack(t);
@@ -246,6 +248,7 @@ void bt_print_init(void){
     s_parser.reset();
     s_armed = false;
     s_power_down_min = 3600;
+    frame_set_crc_key(FRAME_CRC_KEY_DEFAULT);   // App 硬编码的 crcKey
 
     Serial.print("协议自检：");
     Serial.println(frame_selftest(s_parser, s_frame) ? "OK" : "失败");
@@ -264,7 +267,11 @@ void bt_print_poll(void){
             Serial.printf("CRC 错：type=%u len=%u 收=%08X 算=%08X\n",
                           (unsigned)s_frame.type, (unsigned)s_frame.len,
                           (unsigned)s_frame.crc_recv, (unsigned)s_frame.crc_calc);
+            frame_hexdump("  载荷", s_frame.payload, s_frame.len > 32 ? 32 : s_frame.len);
             continue;
+        }
+        if (s_frame.crc_rule != 0) {
+            Serial.printf("（CRC 规则 %u 命中：非主规则，请留意）\n", (unsigned)s_frame.crc_rule);
         }
         handle_frame();
     }
