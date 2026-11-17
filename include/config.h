@@ -1,17 +1,16 @@
 #pragma once
 
-
 //LED
 #define LED_PIN 18
-#define LED_ON() digitalWrite(LED_PIN, LOW)
+#define LED_ON()  digitalWrite(LED_PIN, LOW)    // 低电平点亮
 #define LED_OFF() digitalWrite(LED_PIN, HIGH)
 void LEDInit(void);
 
 //print head
 #define HEAD_PHINT   35
-#define HEAD_BYTES   48      // 一行 384 点 / 8  48字节
-#define HEAD_DOTS    384 
-#define HEAD_STB_NUM 6  //STB加热段个数
+#define HEAD_BYTES   48      // 一行 384 点 / 8
+#define HEAD_DOTS    384
+#define HEAD_STB_NUM 6       // STB 加热段个数
 #define CLK_PIN 15
 #define STB1_PIN 14
 #define STB2_PIN 27
@@ -21,21 +20,12 @@ void LEDInit(void);
 #define STB6_PIN 32
 #define DI_PIN 13
 
-#define USE_BOARD_1 
-
-
-#ifdef USE_BOARD_1 
-#define LAY_PIN 12
-#define VH_EN_PIN 17
-#endif
-
-#ifdef USE_BOARD_2
-#define LAY_PIN 17
-#define VH_EN_PIN 28
-#endif
+// BOARD_1 引脚定义（当前硬件）
+#define LAY_PIN   12   // 锁存，空闲低 / 脉冲高
+#define VH_EN_PIN 17   // 打印头升压电源使能
 
 #define BTN_PIN 5
 
-#define PIN_BATTEST 34
 void BTNInit(void);
+
 #include <Arduino.h>

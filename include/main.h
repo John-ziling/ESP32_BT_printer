@@ -10,7 +10,6 @@
 #include "adc.h"
 #include "battery.h"
 #include "bluetooth.h"
-#include "bt_print.h"
-extern BluetoothSerial SerialBT;
+#include "app.h"
 
-extern const uint8_t bitmap_page[200][48];
+extern BluetoothSerial SerialBT;

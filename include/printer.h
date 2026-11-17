@@ -14,4 +14,3 @@ void printhead_heat_all(uint32_t time_us);
 void printer_print_row(const uint8_t row[HEAD_BYTES], uint32_t heat_time_us);
 void printer_end(void);
 void printer_begin(void);
-void print_page(const uint8_t *data, uint32_t lines, uint32_t heat_us);

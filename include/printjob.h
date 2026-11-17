@@ -16,7 +16,9 @@ void     job_reset(void);                       // 丢弃本页
 bool     job_append(const uint8_t *d, uint16_t n);  // 追加点阵字节
 uint32_t job_bytes(void);                       // 已攒字节
 uint32_t job_lines(void);                       // 已攒行数（整行）
-bool     job_print(void);                       // 走纸 + 加热，返回 false = 中途中止
+bool     job_is_valid(void);                    // false = 过程中溢出/内存不足，本页作废
+bool     job_print(void);                       // 走纸 + 加热，返回 false = 未完成
 void     job_feed_mm(float mm);                 // 单独走纸
 void     job_set_density(uint8_t d);            // 热密度 0-100
 uint8_t  job_get_density(void);
+void     job_render_test_page(void);            // 生成内置自检图案（不再占用 Flash 存位图）

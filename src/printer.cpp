@@ -12,7 +12,9 @@ void printinit(void){
     pinMode(STB_BUFFS[i], OUTPUT);
     digitalWrite(STB_BUFFS[i], LOW);
   }
-  SPI.begin(CLK_PIN, -1, DI_PIN, -1);//设置SPI引脚，CLK_PIN为时钟引脚，DI_PIN为数据输入引脚
+  // MISO 显式给一个没用的脚（GPIO4）。若传 -1，ESP32 Arduino 会把 MISO
+  // 替换成默认的 GPIO19 —— 那正是电机 B-，会造成引脚占用冲突（隐患）
+  SPI.begin(CLK_PIN, 4, DI_PIN, -1);
 }
 
 //控制加热电源的开关
@@ -84,24 +86,5 @@ void printer_end(void){
   printhead_stb(0);
   printer_clear();
   printhead_vh(false);
-}
-
-
-void print_page(const uint8_t *data, uint32_t lines, uint32_t heat_us) {
-  printer_begin();
-
-  for (uint32_t line = 0; line < lines; line++) {
-    if(test_head_temp()==2){
-      printer_end();
-      motor_release();
-      return;
-    }
-    printer_print_row(&data[line * HEAD_BYTES], heat_us);
-  }
-
-  motor_run(20 * 4, false, 2000); 
-  motor_release();
-  printer_end();
-  motor_step_mm_false(5,1000);
 }
 

@@ -1,36 +1,60 @@
 #include "battery.h"
 
-uint16_t adc=0;
+// =====================================================
+//  battery.cpp —— 电池电压采样与电量查表
+//
+//  分压：R27 10k / R29 10k → 1:1，故引脚电压 ×2 即为电池电压
+//  采样：analogReadMilliVolts() 取芯片校准后的毫伏，10 次平均
+//        必须用带校准的接口，否则原始 ADC 值线性度很差
+//  电量：101 点查表（3.40V→0%，4.20V→100%），因为锂电池放电曲线非线性
+// =====================================================
 
-float BATV_VOLT;
-uint8_t PRINTER_BATTERY;  
+float   BATV_VOLT       = 0.0f;
+uint8_t PRINTER_BATTERY = 0;
 
+// 电量对照表：下标即百分比
+static const float batVoltagelist[101] = {
+    3.400, 3.600, 3.650, 3.680, 3.700, 3.705, 3.710, 3.715, 3.720, 3.725, // 0-9
+    3.730, 3.735, 3.740, 3.745, 3.750, 3.755, 3.760, 3.765, 3.770, 3.775, // 10-19
+    3.780, 3.783, 3.786, 3.789, 3.792, 3.795, 3.798, 3.801, 3.804, 3.807, // 20-29
+    3.810, 3.813, 3.816, 3.819, 3.822, 3.825, 3.828, 3.831, 3.834, 3.837, // 30-39
+    3.840, 3.843, 3.846, 3.849, 3.852, 3.855, 3.858, 3.861, 3.864, 3.867, // 40-49
+    3.870, 3.873, 3.876, 3.879, 3.882, 3.885, 3.888, 3.891, 3.894, 3.897, // 50-59
+    3.900, 3.903, 3.906, 3.909, 3.912, 3.915, 3.918, 3.921, 3.924, 3.927, // 60-69
+    3.930, 3.935, 3.940, 3.945, 3.950, 3.955, 3.960, 3.965, 3.970, 3.975, // 70-79
+    3.980, 3.985, 3.990, 3.995, 4.000, 4.010, 4.020, 4.030, 4.040, 4.050, // 80-89
+    4.060, 4.080, 4.100, 4.120, 4.140, 4.160, 4.180, 4.190, 4.200, 4.200, // 90-99
+    4.200                                                                 // 100
+};
 
-static uint16_t get_adc_avg(uint8_t pin){
-    uint32_t sum=0;
-    for(uint8_t i = 0; i < 10 ; i++){
+// 10 次平均，抑制噪声
+static uint16_t get_adc_avg_mv(uint8_t pin){
+    uint32_t sum = 0;
+    for (uint8_t i = 0; i < 10; i++) {
         sum += analogReadMilliVolts(pin);
     }
-    return sum/10;
+    return (uint16_t)(sum / 10);
 }
 
-void getBatteryPower(void)
-{  
-    uint16_t pin_mv = 0;
-    uint16_t now_vbat = 0;
-    uint8_t Battery_level=0;
-    pin_mv=get_adc_avg(POWER_ADC_PIN);
-    now_vbat=pin_mv*2;
+void getBatteryPower(bool verbose){
+    uint16_t pin_mv  = get_adc_avg_mv(POWER_ADC_PIN);
+    uint16_t vbat_mv = pin_mv * 2;                  // 分压比 1:1
+    float    volt    = (float)vbat_mv / 1000.0f;
 
-    Serial.printf("引脚读取的mv值: %d,当前电压：%.2f",pin_mv,(float)now_vbat/1000.0f);
-    for(int i= sizeof(batVoltagelist)/sizeof(batVoltagelist[0])-1;i >= 0 ;i--){
-        if((float)now_vbat/1000.0f >= batVoltagelist[i]){
-            Battery_level=i;
-            break;
-        }
+    uint8_t level = 0;
+    for (int i = 100; i >= 0; i--) {
+        if (volt >= batVoltagelist[i]) { level = (uint8_t)i; break; }
     }
-    BATV_VOLT=(float)now_vbat/1000.0f;
-    PRINTER_BATTERY=Battery_level;
-    Serial.printf("查表获取的电量：%d%%",Battery_level);
-    
+
+    BATV_VOLT       = volt;
+    PRINTER_BATTERY = level;
+
+    if (verbose) {
+        Serial.printf("电池：引脚 %u mV → %.2f V，电量 %u%%\n",
+                      (unsigned)pin_mv, volt, (unsigned)level);
+    }
+}
+
+bool battery_low(void){
+    return BATV_VOLT < BAT_LOW_V;
 }

@@ -29,7 +29,13 @@ static FrameParser s_parser;
 static Frame       s_frame;
 
 static bool     s_armed = false;         // 已收到"开始"信号
-static uint16_t s_power_down_min = 3600; // 自动关机时间（分钟），App 默认要 3600
+
+// 打印期间不接收新数据：把链路上残留的字节丢弃，否则会被当成下一条指令
+static void print_drain(void){
+    uint16_t guard = 0;
+    while (SerialBT.available() && guard++ < 4096) SerialBT.read();
+    s_parser.reset();
+}
 
 // ---------- 发送 ----------
 // 不要用 availableForWrite()：这版 BluetoothSerial 没实现，永远返回 0
@@ -93,12 +99,12 @@ static void handle_frame(void){
         reply_data(SENT_COUNTRY_NAME, (const uint8_t *)PROTO_COUNTRY, 2);
         break;
     case GET_BAT_STATUS: {
-        getBatteryPower();
+        getBatteryPower(false);
         reply_data(SENT_BAT_STATUS, &PRINTER_BATTERY, 1);
         break;
     }
     case GET_VOLTAGE: {
-        getBatteryPower();
+        getBatteryPower(false);
         uint16_t mv = (uint16_t)(BATV_VOLT * 1000.0f);
         uint8_t  b[2] = {(uint8_t)(mv & 0xFF), (uint8_t)(mv >> 8)};
         reply_data(SENT_VOLTAGE, b, 2);
@@ -112,10 +118,11 @@ static void handle_frame(void){
         break;
     }
     case GET_STATUS: {
+        getBatteryPower(false);                                   // 先刷新再判
         uint8_t st = 0;
-        if (papertest() != 0)                         st |= 0x01;  // 缺纸
-        if (get_head_temperature() >= 80.0f)          st |= 0x02;  // 过温
-        if (PRINTER_BATTERY <= 10)                    st |= 0x04;  // 低电
+        if (papertest() != 0)               st |= 0x01;           // 缺纸
+        if (head_temp_level() == 2)         st |= 0x02;           // 过温
+        if (battery_low())                  st |= 0x04;           // 低电
         reply_data(SENT_STATUS, &st, 1);
         break;
     }
@@ -125,7 +132,8 @@ static void handle_frame(void){
         break;
     }
     case GET_POWER_DOWN_TIME: {
-        uint8_t b[2] = {(uint8_t)(s_power_down_min & 0xFF), (uint8_t)(s_power_down_min >> 8)};
+        uint16_t m = app_power_down_min();
+        uint8_t b[2] = {(uint8_t)(m & 0xFF), (uint8_t)(m >> 8)};
         reply_data(SENT_POWER_DOWN_TIME, b, 2);
         break;
     }
@@ -181,8 +189,9 @@ static void handle_frame(void){
 
     case SET_POWER_DOWN_TIME:
         if (n >= 2) {
-            s_power_down_min = (uint16_t)(p[0] | (p[1] << 8));
-            Serial.printf("自动关机 %u 分钟\n", (unsigned)s_power_down_min);
+            uint16_t m = (uint16_t)(p[0] | (p[1] << 8));
+            app_set_power_down_min(m);
+            Serial.printf("自动关机 %u 分钟\n", (unsigned)m);
         }
         reply_ack(t);
         break;
@@ -206,7 +215,10 @@ static void handle_frame(void){
         if (s_armed && job_bytes() > 0) {     // 第二次 FEED_LINE → 开打
             s_armed = false;
             reply_ack(t);                     // 先应答，再干活（别让 App 等 6 秒）
+            app_set_busy(true);
             job_print();
+            app_set_busy(false);
+            print_drain();                    // 丢弃打印期间积压的字节，防止错帧
         } else if (s_armed) {                 // 空任务，只走纸
             s_armed = false;
             reply_ack(t);
@@ -220,9 +232,11 @@ static void handle_frame(void){
 
     case PRINT_TEST_PAGE: {
         reply_ack(t);
-        job_begin();
-        job_append((const uint8_t *)bitmap_page, sizeof(bitmap_page));
+        job_render_test_page();               // 图案由程序生成，不再占 Flash 存位图
+        app_set_busy(true);
         job_print();
+        app_set_busy(false);
+        print_drain();
         break;
     }
 
@@ -233,7 +247,9 @@ static void handle_frame(void){
 
     case DISCONNECT_BT:
         reply_ack(t);
-        Serial.println("App 请求断开");
+        Serial.println("App 请求断开，主动断开链路");
+        delay(20);                       // 给应答一点时间发出去
+        SerialBT.disconnect();
         break;
 
     // ---------- 其他一律 ACK ----------
@@ -247,7 +263,7 @@ static void handle_frame(void){
 void bt_print_init(void){
     s_parser.reset();
     s_armed = false;
-    s_power_down_min = 3600;
+    app_set_power_down_min(3600);               // 协议默认 3600 分钟
     frame_set_crc_key(FRAME_CRC_KEY_DEFAULT);   // App 硬编码的 crcKey
 
     Serial.print("协议自检：");
@@ -279,5 +295,6 @@ void bt_print_poll(void){
                           (unsigned)s_frame.crc_rule);
         }
         handle_frame();
+        app_touch();                 // 有通信活动就重置空闲计时
     }
 }
