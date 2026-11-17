@@ -270,8 +270,13 @@ void bt_print_poll(void){
             frame_hexdump("  载荷", s_frame.payload, s_frame.len > 32 ? 32 : s_frame.len);
             continue;
         }
-        if (s_frame.crc_rule != 0) {
-            Serial.printf("（CRC 规则 %u 命中：非主规则，请留意）\n", (unsigned)s_frame.crc_rule);
+        // App 内部有两套 CRC 实现：设置密钥那帧用 key 当初始值，其余用标准 zlib。
+        // 所以"规则 1 命中"是正常现象，只在规则变化时提示一次，不刷屏。
+        static uint8_t s_last_rule = 0xFF;
+        if (s_frame.crc_rule != s_last_rule) {
+            s_last_rule = s_frame.crc_rule;
+            Serial.printf("CRC 规则 = %u（0=key初值 1=标准zlib 2/3=帧头 4=帧内key 5=全0）\n",
+                          (unsigned)s_frame.crc_rule);
         }
         handle_frame();
     }
