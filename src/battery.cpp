@@ -2,7 +2,7 @@
 
 uint16_t adc=0;
 
-float BATV_VOLT;          // 电池电压
+float BATV_VOLT;
 uint8_t PRINTER_BATTERY;  
 
 

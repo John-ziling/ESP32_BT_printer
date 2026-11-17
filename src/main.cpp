@@ -3,20 +3,19 @@
 void setup() {
   Serial.begin(115200); 
   delay(200);
+  BT_Init();
   printinit();
   printer_clear();
   motor_init();
   LEDInit();
   BTNInit();
   papertest_Config();
+  bt_print_init();
 }
 
 
 uint32_t count = 0;
 void loop() {
-  while (SerialBT.available()) {
-    Serial.write(SerialBT.read());
-  }
   if(count>500){
     count = 0;
     getBatteryPower();
@@ -35,6 +34,7 @@ void loop() {
       delay(20);
     }
   }
+  bt_print_poll();
   papertest();
-  delay(10);
+  delay(1);
 }

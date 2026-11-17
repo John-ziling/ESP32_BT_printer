@@ -1,8 +1,8 @@
 #pragma once
 #include <main.h>
 
-#define HEAT_MAX_TIME_US 3000 
-#define HEAT_DEF_TIME_US 3000 
+#define HEAT_MAX_TIME_US 5000 
+#define HEAT_DEF_TIME_US 3500 
 
 void printinit(void);
 void printhead_vh(bool on);

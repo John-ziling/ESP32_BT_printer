@@ -53,8 +53,8 @@ float get_head_temperature(void)
 }
 
 uint8_t test_head_temp(void){
-    uint8_t temp = get_head_temperature();
-    Serial.printf("当前温度：%d",temp);
+    float temp = get_head_temperature();
+    Serial.printf("当前温度：%.1f",temp);
     if(temp>=50 && temp<=80){
         Serial.printf("当前温度较高");
         return 1;

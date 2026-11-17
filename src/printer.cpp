@@ -18,19 +18,16 @@ void printinit(void){
 //控制加热电源的开关
 void printhead_vh(bool on) { 
   digitalWrite(VH_EN_PIN, on ? HIGH : LOW); 
-} 
+}
 
 
 void printhead_send(const uint8_t row[HEAD_BYTES]) {
   SPI.beginTransaction(HEAD_SPI);
   SPI.writeBytes(row, HEAD_BYTES);   // 比 transfer 循环快
   SPI.endTransaction();
-
   digitalWrite(LAY_PIN, HIGH);
   delayMicroseconds(1);
   digitalWrite(LAY_PIN, LOW);
-  
- 
 }
 
 //清除打印数据
@@ -105,6 +102,6 @@ void print_page(const uint8_t *data, uint32_t lines, uint32_t heat_us) {
   motor_run(20 * 4, false, 2000); 
   motor_release();
   printer_end();
-  motor_step_mm_false(10,1000);
+  motor_step_mm_false(5,1000);
 }
 

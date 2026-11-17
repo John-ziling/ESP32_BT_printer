@@ -2,6 +2,7 @@
 
 #include <main.h>
 
-#define BT_NAME " MaoPaperang_Q"
+#define BT_NAME "MaoPaperang_Q"
 
-void BT_start(void);
+void BT_Init(void);
+void BT_Stop(void);

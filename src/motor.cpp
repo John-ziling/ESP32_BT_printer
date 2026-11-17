@@ -33,7 +33,7 @@ void motor_release(void){
 static void apply_phase(uint8_t p) { 
   for (int i = 0; i < 4; i++) 
     digitalWrite(motor_pins[i], motor_step_table[p][i] ? HIGH : LOW); 
-} 
+}
 
 //单步运动函数，phase为true表示顺时针，false表示逆时针，delay_us为每步的延迟时间
 void motor_step(bool phase,uint32_t delay_us){

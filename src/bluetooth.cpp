@@ -3,28 +3,15 @@
 BluetoothSerial SerialBT;
 
 
-void BT_start(void){
-
+void BT_Init(void){
     if(!SerialBT.begin(BT_NAME)){
-        SerialBT.println("启动失败");
+        Serial.println("蓝牙启动失败");
         return;
     }
-    SerialBT.println("蓝牙已启动\r\n设备名称: ");
-    SerialBT.println(BT_NAME);
-
+    Serial.println("蓝牙已启动，设备名称：");
+    Serial.println(BT_NAME);
 }
 
-void BT_stop(){
+void BT_Stop(){
     SerialBT.end();
-
-}
-
-static uint8_t recv_data;
-uint8_t BT_recv_data[512][48];
-
-void BT_recv(){
-    if(SerialBT.available()){
-        recv_data=SerialBT.read();
-
-    }
 }
