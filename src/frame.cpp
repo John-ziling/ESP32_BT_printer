@@ -20,6 +20,7 @@
 // =====================================================
 
 // ACK 形状的帧：载荷长度 1 且内容 0x00
+
 static inline bool ack_shaped(uint16_t len, const uint8_t *payload){
     return (len == 1 && payload[0] == 0x00);
 }
