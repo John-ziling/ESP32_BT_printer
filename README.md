@@ -7,6 +7,7 @@
 ![ESP32](https://img.shields.io/badge/MCU-ESP32--WROOM--32E-blue)
 ![Framework](https://img.shields.io/badge/framework-Arduino-teal)
 ![Status](https://img.shields.io/badge/status-可连官方App打印-brightgreen)
+![License](https://img.shields.io/badge/license-MIT-blue)
 
 ---
 
@@ -280,4 +281,7 @@ FEED_LINE（第 2 次）  触发打印：先回 ACK 再开始打（避免 App 6 
 
 ## 许可
 
-⚠️ 本项目暂未添加开源协议，代码与文档仅供学习参考，引用或二次发布前请先联系作者。
+[MIT License](LICENSE) · Copyright © 2026 [John-ziling](https://github.com/John-ziling)
+
+固件代码与本文档可自由使用、修改和分发，请保留版权声明；
+`文档/资料/` 与 `文档/教程/` 内的打印头规格书、芯片手册、教程等文件为各自厂商或作者的权利，不在 MIT 覆盖范围内。
